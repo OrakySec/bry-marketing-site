@@ -1,0 +1,36 @@
+version: '3.8'
+
+# Stack: bry-marketing
+# Variáveis (configurar na stack do Portainer):
+#   SITE_DOMAIN  -> domínio do site, ex.: brymarketing.com.br   (obrigatória)
+#   SITE_IMAGE   -> imagem a usar (opcional; padrão abaixo)
+
+services:
+  site:
+    image: ${SITE_IMAGE:-ghcr.io/orakysec/bry-marketing-site:latest}
+    networks:
+      - YkaroNET
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        order: start-first   # sobe o novo container antes de derrubar o antigo
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=YkaroNET"
+        - "traefik.http.routers.bry-site.rule=Host(`${SITE_DOMAIN:?Defina SITE_DOMAIN}`)"
+        - "traefik.http.routers.bry-site.entrypoints=websecure"
+        - "traefik.http.routers.bry-site.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.bry-site.loadbalancer.server.port=80"
+
+networks:
+  YkaroNET:
+    external: true
